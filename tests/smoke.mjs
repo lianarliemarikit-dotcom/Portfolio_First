@@ -1,0 +1,91 @@
+import { chromium } from 'playwright';
+import { mkdir, readFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import assert from 'node:assert/strict';
+const root=process.cwd();
+await mkdir('test-results',{recursive:true});
+const port=4173;
+const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port',String(port),'--strictPort'],{cwd:root,windowsHide:true,stdio:'pipe'});
+let browser;
+const errors=[];
+const check=(name,value)=>{assert.ok(value,name);console.log('PASS '+name)};
+const pdf=Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 300]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF');
+try {
+ for(let i=0;i<60;i++){try{if((await fetch('http://127.0.0.1:'+port)).ok)break;}catch{}await new Promise(r=>setTimeout(r,200));}
+ browser=await chromium.launch({executablePath:process.env.BROWSER_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
+ const page=await browser.newPage({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
+ page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('http://127.0.0.1:'+port);
+ await page.locator('h1').waitFor();
+ await page.evaluate(()=>document.fonts.ready);
+ check('Reduced motion skips intro',await page.locator('.intro-overlay').count()===0);
+ check('All 8 categories',await page.locator('.category-trigger').count()===8);
+ check('Three distinct reflection chapters',await page.locator('.chapter').count()===3);
+ check('No dead placeholder links',await page.locator('a[href="#"]').count()===0);
+ check('Counts match supplied records',await page.locator('.stat strong').allTextContents().then(a=>JSON.stringify(a)===JSON.stringify(['00','01','01','02'])));
+ await page.locator('img').evaluateAll(list=>list.forEach(i=>i.loading='eager'));await page.evaluate(()=>Promise.all(Array.from(document.images).map(i=>i.decode().catch(()=>{}))));await page.screenshot({path:'test-results/desktop.png',fullPage:true});
+ for(const width of [320,390,768,1440]){
+  await page.setViewportSize({width,height:900});
+  check('No horizontal overflow at '+width,await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ }
+ await page.setViewportSize({width:390,height:844});
+ await page.screenshot({path:'test-results/mobile.png',fullPage:true});
+ await page.getByRole('button',{name:'Menu',exact:true}).click();
+ check('Menu opens',await page.locator('dialog[open]').count()===1);
+ await page.keyboard.press('Shift+Tab');
+ check('Menu traps focus',await page.evaluate(()=>!!document.activeElement.closest('dialog')));
+ await page.keyboard.press('Escape');
+ check('Escape closes menu',await page.locator('dialog[open]').count()===0);
+ check('Menu restores focus',await page.getByRole('button',{name:'Menu',exact:true}).evaluate(e=>e===document.activeElement));
+ await page.getByRole('button',{name:'Menu',exact:true}).click();
+ await page.getByRole('navigation',{name:'Fullscreen navigation'}).getByRole('link',{name:/Reflections/}).click();
+ check('Menu navigation reaches chapter',page.url().endsWith('#reflections'));
+ for(let i=0;i<8;i++){
+  const trigger=page.locator('.category-trigger').nth(i);
+  await trigger.click();
+  const id=await trigger.getAttribute('aria-controls');
+  check('Category '+(i+1)+' expands',await page.locator('#'+id).isVisible());
+  await trigger.click();
+ }
+ await page.getByRole('button',{name:'View Computer Programming 1 compilation'}).click();
+ check('Real compilation preview',await page.locator('dialog object').getAttribute('data').then(v=>v.endsWith('compilation.pdf')));
+ await page.keyboard.press('Escape');
+ await page.locator('.local-preview summary').click();await page.locator('input[type=file]').setInputFiles({name:'not-a-pdf.txt',mimeType:'text/plain',buffer:Buffer.from('bad')});
+ check('Invalid file rejected',await page.getByRole('alert').innerText().then(t=>t.includes('choose a PDF')));
+ await page.locator('input[type=file]').setInputFiles({name:'test-only.pdf',mimeType:'application/pdf',buffer:pdf});
+ await page.getByRole('button',{name:'Preview PDF',exact:true}).click();
+ check('Local PDF preview uses object URL',await page.locator('dialog object').getAttribute('data').then(s=>s.startsWith('blob:')));
+ const downloadEvent=page.waitForEvent('download');
+ await page.locator('dialog').getByRole('link',{name:'Download PDF',exact:true}).click();
+ check('PDF downloads with original filename',(await downloadEvent).suggestedFilename()==='test-only.pdf');
+ await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'Clear',exact:true}).click();
+ await page.getByRole('button',{name:'Preview PDF',exact:true}).click();check('Clear restores original compilation',await page.locator('dialog object').getAttribute('data').then(v=>v.endsWith('compilation.pdf')));await page.keyboard.press('Escape');
+ await page.locator('.chapter summary').first().click();
+ check('Reflection prompts accessible',await page.locator('.chapter details').first().getAttribute('open')!==null);
+ const animated=await browser.newPage({viewport:{width:1280,height:850}});
+ animated.on('pageerror',e=>errors.push(e.message));
+ await animated.goto('http://127.0.0.1:'+port);
+ await animated.getByRole('button',{name:'Skip intro'}).waitFor();
+ await animated.waitForTimeout(500);
+ await animated.screenshot({path:'test-results/intro-greeting.png'});
+ await animated.getByRole('button',{name:'Skip intro'}).click();
+ await animated.locator('.intro-overlay').waitFor({state:'detached'}).catch(()=>{});
+ check('Skip intro releases page',await animated.locator('.header').evaluate(e=>e.closest('[inert]')===null));
+ await animated.getByRole('button',{name:'Replay intro'}).click();
+ await animated.waitForTimeout(3800);
+ check('Intro automatically completes',await animated.locator('.intro-overlay').count()===0);
+ await animated.getByRole('button',{name:'Pause motion'}).click();
+ check('Motion toggle works',await animated.getByRole('button',{name:'Resume motion'}).getAttribute('aria-pressed')==='true');
+ await animated.getByRole('button',{name:'Menu',exact:true}).click();
+ await animated.waitForTimeout(700);await animated.screenshot({path:'test-results/menu.png'});
+ await animated.keyboard.press('Escape');
+ check('No application runtime errors',errors.length===0);
+ // Disable WebGL before loading to exercise the real fallback path.
+ const fallback=await browser.newPage({reducedMotion:'reduce'});
+ await fallback.addInitScript(()=>{const old=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){if(String(type).includes('webgl'))return null;return old.call(this,type,...args)};});
+ await fallback.goto('http://127.0.0.1:'+port);
+ await fallback.waitForTimeout(2000);await fallback.locator('.fallback-ring').waitFor();
+ check('WebGL fallback visible',await fallback.locator('.fallback-ring').isVisible());
+ const {PDFDocument}=await import('pdf-lib');const original=await PDFDocument.load(await readFile('public/documents/academic-compilation/compilation.pdf'));check('Compiled PDF contains all 14 pages',original.getPageCount()===14);console.log('All production smoke checks passed.');
+} finally { await browser?.close();server.kill(); }

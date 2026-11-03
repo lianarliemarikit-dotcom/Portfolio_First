@@ -1,0 +1,17 @@
+import { chromium } from 'playwright';
+import {mkdir} from 'node:fs/promises';
+await mkdir('test-results/current',{recursive:true});
+const browser=await chromium.launch({executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',headless:true});
+const page=await browser.newPage({viewport:{width:1128,height:576},reducedMotion:'reduce'});
+const errors=[];page.on('pageerror',e=>errors.push(e.message));
+page.on('response',r=>{if(r.status()>=400)errors.push(r.status()+' '+r.url())});
+await page.goto('http://127.0.0.1:5173/');await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(1800);
+await page.screenshot({path:'test-results/current/hero.png'});
+await page.setViewportSize({width:1440,height:1000});
+await page.locator('img').evaluateAll(list=>list.forEach(img=>img.loading='eager'));
+await page.evaluate(()=>Promise.all(Array.from(document.images).map(img=>img.decode().catch(()=>{}))));
+await page.screenshot({path:'test-results/current/desktop.png',fullPage:true});
+await page.getByRole('button',{name:'Menu',exact:true}).click();await page.waitForTimeout(500);await page.screenshot({path:'test-results/current/menu.png'});await page.keyboard.press('Escape');
+await page.setViewportSize({width:390,height:844});await page.screenshot({path:'test-results/current/mobile.png',fullPage:true});
+console.log({errors,overflow:await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),brokenImages:await page.locator('img').evaluateAll(list=>list.filter(i=>i.complete&&!i.naturalWidth).map(i=>i.src))});
+await browser.close();

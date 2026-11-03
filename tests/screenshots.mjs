@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
+const page=await browser.newPage({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
+page.on('pageerror',e=>console.log('ERROR',e.message));
+await page.goto('http://127.0.0.1:5173/');
+await page.waitForTimeout(2000);
+await page.screenshot({path:'test-results/desktop.png',fullPage:true});
+await page.setViewportSize({width:390,height:844});
+await page.screenshot({path:'test-results/mobile.png',fullPage:true});
+console.log('Overflow',await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:innerWidth})));
+await browser.close();

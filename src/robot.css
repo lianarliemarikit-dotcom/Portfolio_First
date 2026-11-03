@@ -1,0 +1,26 @@
+.cursor-trail { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 90; pointer-events: none; opacity: 0; overflow: hidden; }
+.cursor-trail path { filter: drop-shadow(0 0 3px #f2df4230); }
+.contact { position: relative; }
+.robot-anchor { position: absolute; left: 0; width: 76px; height: 80px; z-index: 2; pointer-events: none; will-change: transform; }
+.robot-button { display: block; width: 100%; height: 100%; min-width: 44px; min-height: 44px; padding: 0; border: 0; background: none; cursor: pointer; pointer-events: auto; touch-action: manipulation; }
+.robot-button:focus-visible { outline: 2px solid var(--nav-yellow); outline-offset: 5px; border-radius: 35%; }
+.robot-button svg { width: 100%; height: 100%; overflow: visible; }
+.robot-pose { transform-origin: 110px 150px; transform: rotate(var(--robot-tilt, 0deg)) scaleY(var(--robot-scale, 1)); }
+.robot-head { transform-origin: 110px 128px; transform: rotate(var(--robot-head, 0deg)); }
+.robot-arm-left { transform-origin: 69px 157px; transform: rotate(var(--robot-arm-left, 0deg)); }
+.robot-arm-right { transform-origin: 150px 157px; transform: rotate(var(--robot-arm-right, 0deg)); }
+.robot-gaze { transform: translate(var(--robot-gaze-x, 0px), var(--robot-gaze-y, 0px)); filter: drop-shadow(0 0 3px #22cddd); }
+.robot-expression { display: none; }
+[data-emotion="neutral"] [data-face="neutral"], [data-emotion="happy"] [data-face="happy"],
+[data-emotion="excited"] [data-face="excited"], [data-emotion="surprised"] [data-face="surprised"],
+[data-emotion="thinking"] [data-face="thinking"], [data-emotion="sad"] [data-face="sad"],
+[data-emotion="sleepy"] [data-face="sleepy"], [data-emotion="blink"] [data-face="blink"] { display: inline; }
+.robot-shadow { transform-origin: 109px 220px; transform: scaleX(var(--robot-shadow, 1)); }
+.robot-sparkles { opacity: 0; transform-origin: 110px 110px; }
+[data-state="excited"] .robot-sparkles { animation: robot-sparkle 1.3s ease-out both; }
+[data-running="false"] .robot-sparkles { animation: none; }
+.footer-name[role="button"] { cursor: pointer; }
+.footer-name[role="button"]:focus-visible { outline: 2px solid var(--nav-yellow); outline-offset: 6px; }
+@keyframes robot-sparkle { 0% { opacity: 0; transform: scale(.7); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(1.12) translateY(-8px); } }
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) { .cursor-trail { display: none; } }
+@media (prefers-reduced-motion: reduce) { .robot-sparkles { animation: none !important; } }

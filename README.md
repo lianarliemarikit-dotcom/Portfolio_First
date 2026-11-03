@@ -1,9 +1,9 @@
 # Lian Arlie Marikit — reference-matched academic portfolio
 
-React, TypeScript, Vite, GSAP ScrollTrigger and React Three Fiber. The site features: a brief black greeting, centered light hero and liquid ring, curved dark transition, editorial portraits, lime curves, dark experience panel, black statistics cards, horizontal work strips, project imagery, curved moving typography, and a compact navigation panel on the right.
+React, TypeScript, Vite, GSAP ScrollTrigger and React Three Fiber. The latest 98-second reference controls the composition: a brief black greeting, centered light hero and liquid ring, curved dark transition, editorial portraits, lime curves, dark experience panel, black statistics cards, horizontal work strips, project imagery, curved moving typography, and a compact navigation panel on the right.
 
 ## Open locally
-Install Node.js 22 or later, then double-click **Start-Portfolio.cmd** on Windows. It installs dependencies (when missing) and opens the portfolio in your default browser. Keep the terminal running while browsing. You can also use `npm ci` and `npm run dev`.
+Double-click **Start-Portfolio.cmd**. It opens the portfolio in Microsoft Edge. Keep the terminal running while browsing. An existing preview is available at http://127.0.0.1:5173/.
 
 For a standard Node.js 22 setup:
 ```sh
@@ -12,6 +12,11 @@ npm run dev
 npm run build
 npm run preview
 npm test
+```
+On this machine Node and npm are also available locally:
+```powershell
+$env:Path = "$PWD;" + $env:Path
+.\node.exe .tools/package/bin/npm-cli.js run build
 ```
 
 ## Edit content
@@ -51,13 +56,11 @@ node scripts/prepare-assets.mjs
 This script requires the original local Pictures folder and is not run during deployment. It creates WebP images, the compilation, the public résumé summary and their data manifests.
 
 ## GitHub Pages
-Project: https://github.com/lianarliemarikit-dotcom/Portfolio_First
-
 Publish this portfolio folder as the repository root. In repository Settings → Pages, set the build source to GitHub Actions. The workflow in .github/workflows/deploy.yml runs npm ci, builds dist, and deploys it on pushes to main.
 
 Vite uses base: './' for correct relative assets under both a repository path and a custom-domain root. The production output is dist/. No backend is needed.
 
-After committing to the `main` branch, enable **Settings → Pages → Build and deployment → GitHub Actions**. The workflow then publishes the site to `https://lianarliemarikit-dotcom.github.io/Portfolio_First/` (once Pages is enabled and deployment succeeds).
+The GitHub Pages workflow builds this portfolio on pushes to main. Enable GitHub Actions as the Pages source in repository Settings → Pages.
 
 ## Visual verification and limitations
 See docs/reference-review.md for the scene comparison and verification notes. The ring is a real deformed 3D mesh with studio reflections and a custom iridescent film shader. Its geometry and lighting are original; the source creator's exact shader and 3D model are unavailable. Your supplied portraits replace the reference's studio photography, so their framing differs.
